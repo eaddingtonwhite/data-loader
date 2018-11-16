@@ -319,8 +319,6 @@ func TestFetchTableSchema(t *testing.T) {
 	}
 }
 
-
-
 func TestMarshalSchema(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -359,8 +357,7 @@ count,3,INTEGER
 				if got[i].Name != dBColumnSchema.Name ||
 					got[i].Width != dBColumnSchema.Width ||
 					got[i].DataType != dBColumnSchema.DataType {
-
-						t.Errorf("want: %+v, got: %+v", tt.expectedSchema, got)
+					t.Errorf("want: %+v, got: %+v", tt.expectedSchema, got)
 				}
 			}
 		})
