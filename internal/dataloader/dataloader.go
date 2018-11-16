@@ -192,7 +192,7 @@ func (d *DataLoader) buildCreateTableQuery(tableName string, dbColumns []dBColum
 	return generatedQuery, nil
 }
 
-// Builds a COPY query from passed target details. Leverages fixed width data format based off based expectedSchema.
+// Builds a COPY query from passed target details. Leverages fixed width data format based off passed expectedSchema.
 func (d *DataLoader) buildCopyFromS3Query(schema []dBColumnSchema, tableName, copyTarget string) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf(
