@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  ArtifactBucket:
+    Type: String
+  ArtifactFolder:
+    Type: String
+  EnvironmentName:
+    Type: String
+  MasterUserPassword:
+    Type: String
+    NoEcho: true
+
+Resources:
+
+  SchemaS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub data-loader-${EnvironmentName}-${AWS::Region}-schemas
+
+  SrcDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub data-loader-${EnvironmentName}-${AWS::Region}-data
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Function: !GetAtt Function.Arn
+  BucketPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref Function
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt SrcDataBucket.Arn
+
+  Network:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+      TemplateURL: !Sub https://s3.amazonaws.com/${ArtifactBucket}/${ArtifactFolder}/network.yaml
+      TimeoutInMinutes: 10
+
+  RedShiftCluster:
+    DependsOn: Network
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        DatabaseName: !Ref AWS::StackName
+        MasterUserPassword: !Ref MasterUserPassword
+        SrcDataBucketArn: !GetAtt SrcDataBucket.Arn
+      TemplateURL: !Sub https://s3.amazonaws.com/${ArtifactBucket}/${ArtifactFolder}/redshift-cluster.yaml
+      TimeoutInMinutes: 15
+
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: !Ref ArtifactBucket
+        Key: !Sub ${ArtifactFolder}/data-loader.zip
+      Handler: data-loader
+      Runtime: go1.x
+      Environment:
+        Variables:
+          ENVIRONMENT_NAME: !Ref EnvironmentName
+          DATA_BUCKET:  !Sub data-loader-${EnvironmentName}-${AWS::Region}-data
+          SCHEMA_BUCKET: !Sub data-loader-${EnvironmentName}-${AWS::Region}-schemas
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt ErrorQueue.Arn
+      Timeout: 900 # 15 minute max copy can take for now
+      FunctionName: !Sub data-loader-${EnvironmentName}
+      Tracing: Active
+      Policies:
+      - Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - ssm:GetParameter
+          Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/data-loader/${EnvironmentName}/*
+        - Effect: Allow
+          Action:
+          - s3:GetObject
+          Resource: !Sub ${SchemaS3Bucket.Arn}/*
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt ErrorQueue.Arn
+
+
+  ErrorQueue:
+    Type: AWS::SQS::Queue
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/data-loader-${EnvironmentName}
+      RetentionInDays: 7
