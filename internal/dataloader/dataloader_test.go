@@ -42,7 +42,7 @@ func TestBuildCreateTableQuery(t *testing.T) {
 			want: "CREATE TABLE testTable( testCol1 VARCHAR(4), testCol2 VARCHAR(42), testCol3 BOOLEAN, testCol4 INTEGER);",
 		},
 		{
-			name: "expectedSchema-empty",
+			name: "schema-empty",
 			svc: &DataLoader{
 				DataBucket: "testDB",
 				Logger:     log.NewNopLogger(),
@@ -51,7 +51,7 @@ func TestBuildCreateTableQuery(t *testing.T) {
 			err:    errors.New("invalid number of columns defined in expectedSchema: 0"),
 		},
 		{
-			name: "expectedSchema-to-many-columns",
+			name: "schema-to-many-columns",
 			svc: &DataLoader{
 				DataBucket: "testDB",
 				Logger:     log.NewNopLogger(),
@@ -60,7 +60,7 @@ func TestBuildCreateTableQuery(t *testing.T) {
 			err:    errors.New("invalid number of columns defined in expectedSchema: 1601"),
 		},
 		{
-			name: "expectedSchema-unsupported-type",
+			name: "schema-unsupported-type",
 			svc: &DataLoader{
 				DataBucket: "testDB",
 				Logger:     log.NewNopLogger(),
@@ -71,7 +71,7 @@ func TestBuildCreateTableQuery(t *testing.T) {
 			err: errors.New("unknown data type passed BAD_TYPE"),
 		},
 		{
-			name: "expectedSchema-text-width-to-large",
+			name: "schema-text-width-to-large",
 			svc: &DataLoader{
 				DataBucket: "testDB",
 				Logger:     log.NewNopLogger(),
@@ -82,7 +82,7 @@ func TestBuildCreateTableQuery(t *testing.T) {
 			err: errors.New("passed column width 257 is larger then TEXT field allows"),
 		},
 		{
-			name: "expectedSchema-duplicate-column",
+			name: "schema-duplicate-column",
 			svc: &DataLoader{
 				DataBucket: "testDB",
 				Logger:     log.NewNopLogger(),
@@ -94,7 +94,7 @@ func TestBuildCreateTableQuery(t *testing.T) {
 			err: errors.New("duplicate column name passed in expectedSchema: testCol"),
 		},
 		{
-			name: "expectedSchema-bad-width",
+			name: "schema-bad-width",
 			svc: &DataLoader{
 				DataBucket: "testDB",
 				Logger:     log.NewNopLogger(),
